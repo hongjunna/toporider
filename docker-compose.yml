@@ -12,6 +12,8 @@ services:
     ports:
       # [수정] 왼쪽(5401)은 내 컴퓨터용, 오른쪽(5432)은 컨테이너 내부용
       - '5401:5432'
+    networks:
+      - toporider_net
 
   backend:
     build: ./backend
@@ -26,6 +28,8 @@ services:
       # [중요] 백엔드는 내부망을 쓰므로 포트는 5432여야 합니다!
       # 비밀번호 오타도 수정했습니다 (wnsfqo1! -> wnsfoq1!)
       - DATABASE_URL=postgresql://admin:wnsfoq1!@db:5432/toporider_db
+    networks:
+      - toporider_net
 
   graphhopper:
     build: ./graphhopper
@@ -37,6 +41,8 @@ services:
       - JAVA_OPTS=-Xmx2g -Xms2g
     ports:
       - '8989:8989'
+    networks:
+      - toporider_net
 
   frontend:
     build: ./frontend
@@ -51,4 +57,8 @@ services:
 
 volumes: # 맨 아래에 추가
   postgres_data:
+
+networks:
+  toporider_net:
+    driver: bridge
 
