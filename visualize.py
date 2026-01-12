@@ -4,7 +4,7 @@ import webbrowser
 import os
 
 # 1. 브라이언이 만든 FastAPI 서버 호출
-url = "http://localhost:8000/route"
+url = "http://localhost:1/route"
 params = {
     "point": ["37.517662844319,127.0075561669067", "37.51108575171066,126.99884631528225"], # 출발지, 도착지
     "profile": "bike"
