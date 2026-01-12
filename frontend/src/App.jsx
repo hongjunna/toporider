@@ -1,3 +1,4 @@
+// src/App.jsx
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { Map, MapMarker, Polyline } from 'react-kakao-maps-sdk';
 import ElevationChart from './ElevationChart';
@@ -8,6 +9,9 @@ import { fetchRoutePath, saveCourse, getCourseList, downloadTCX, updateCourse } 
 import ControlPanel from './components/ControlPanel';
 import LoadCourseModal from './components/LoadCourseModal';
 import GradientLegend from './components/GradientLegend';
+
+// ⚡ 테마 색상 가져오기
+import { COLORS } from './styles/theme';
 
 function App() {
   const [center, setCenter] = useState({ lat: 37.521285, lng: 126.999852 });
@@ -21,11 +25,8 @@ function App() {
   const [isChartOpen, setIsChartOpen] = useState(true);
   const [isAutoRouting, setIsAutoRouting] = useState(true);
 
-  // 현재 코스 제목 및 수정 여부
   const [currentTitle, setCurrentTitle] = useState("새 코스");
   const [isModified, setIsModified] = useState(false);
-
-  // ⚡ [신규] 현재 코스의 DB ID (없으면 null)
   const [currentId, setCurrentId] = useState(null);
 
   const hoverMarkerRef = useRef(null);
@@ -44,12 +45,11 @@ function App() {
     hoverMarkerRef.current = marker;
   }, [map]);
 
-  // ⚡ [신규] 수정 중일 때 페이지 이탈(새로고침) 방지
   useEffect(() => {
     const handleBeforeUnload = (e) => {
       if (isModified) {
         e.preventDefault();
-        e.returnValue = ''; // 크롬 등 최신 브라우저 필수 설정
+        e.returnValue = '';
       }
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
@@ -87,42 +87,35 @@ function App() {
 
     pushState({ markers: nextMarkers, polylines: nextPolylines });
     setIsChartOpen(true);
-
-    // 경로가 변경되었으므로 수정 상태로 변경
     setIsModified(true);
   };
 
-  // ⚡ [수정] 저장 핸들러 (덮어쓰기 로직 추가)
   const handleSave = async () => {
     if (currentMarkers.length < 2) return alert("저장할 코스가 없어요!");
 
-    // 1. 기존 코스를 불러온 상태라면 덮어쓸지 물어봄
     if (currentId) {
-      if (window.confirm(`수정된 내용이 있습니다.\n기존 코스 [${currentTitle}]에 덮어쓰시겠습니까?\n('취소'를 누르면 새 이름으로 저장하거나 저장을 취소할 수 있습니다.)`)) {
+      if (window.confirm(`수정된 내용이 있습니다.\n기존 코스 [${currentTitle}]에 덮어쓰시겠습니까?\n('취소'를 누르면 새 이름으로 저장합니다.)`)) {
         try {
           await updateCourse(currentId, currentTitle, currentMarkers, currentPolylines);
-          alert("✅ 수정된 내용이 저장되었습니다.");
+          alert("✅ 저장 완료!");
           setIsModified(false);
           return;
         } catch (e) {
-          console.error(e);
-          alert("저장(덮어쓰기) 실패");
+          alert("저장 실패");
           return;
         }
       }
     }
 
-    // 2. 새 코스로 저장 (ID가 없거나, 덮어쓰기 취소 시)
     const title = prompt("새 코스로 저장합니다. 이름을 입력하세요:", currentTitle !== "새 코스" ? currentTitle : "나의 주말 라이딩");
     if (!title) return;
 
     try {
       const response = await saveCourse(title, currentMarkers, currentPolylines);
       if (response.data.status === 'success') {
-        alert(`✅ 새 코스로 저장 완료! (ID: ${response.data.course_id})`);
-
+        alert(`✅ 저장 완료!`);
         setCurrentTitle(title);
-        setCurrentId(response.data.course_id); // 저장된 ID 할당
+        setCurrentId(response.data.course_id);
         setIsModified(false);
       }
     } catch (error) { alert("저장 실패"); }
@@ -137,11 +130,8 @@ function App() {
   };
 
   const handleLoadCourse = (course) => {
-    // ⚡ [추가] 수정 중이라면 불러오기 전 경고
     if (isModified) {
-      if (!window.confirm("수정 중인 내용이 사라집니다. 정말 다른 코스를 불러오시겠습니까?")) {
-        return;
-      }
+      if (!window.confirm("수정 중인 내용이 사라집니다. 불러오시겠습니까?")) return;
     }
 
     try {
@@ -152,9 +142,8 @@ function App() {
       setIsLoadModalOpen(false);
       setIsChartOpen(true);
 
-      // 불러온 코스 정보 설정
       setCurrentTitle(course.title);
-      setCurrentId(course.id); // ID 저장
+      setCurrentId(course.id);
       setIsModified(false);
     } catch (e) { alert("데이터 오류"); }
   };
@@ -171,24 +160,18 @@ function App() {
       link.click();
       link.parentNode.removeChild(link);
       window.URL.revokeObjectURL(url);
-    } catch (e) {
-      console.error(e);
-      alert("TCX 생성 실패");
-    }
+    } catch (e) { alert("TCX 생성 실패"); }
   };
 
   const handleResetApp = () => {
-    // ⚡ [추가] 수정 중일 때 초기화 경고
-    if (isModified && !window.confirm("수정 중인 내용이 사라집니다. 정말 초기화 하시겠습니까?")) {
-      return;
-    }
+    if (isModified && !window.confirm("수정 중인 내용이 사라집니다. 초기화 하시겠습니까?")) return;
 
     if (window.confirm("지도가 초기화됩니다.")) {
       reset({ markers: [], polylines: [] });
       if (hoverMarkerRef.current) hoverMarkerRef.current.setVisible(false);
 
       setCurrentTitle("새 코스");
-      setCurrentId(null); // ID 초기화
+      setCurrentId(null);
       setIsModified(false);
     }
   };
@@ -215,7 +198,8 @@ function App() {
             return <MapMarker key={`m-${idx}`} position={pos} image={{ src: imageSrc, size: { width: 20, height: 20 }, options: { offset: { x: 8, y: 8 } } }} />;
           })}
           {currentPolylines.map((path, idx) => (
-            <Polyline key={`l-${idx}`} path={path} strokeWeight={6} strokeColor={"#FF3399"} strokeOpacity={0.8} strokeStyle={"solid"} />
+            // ⚡ 경로 색상을 브랜드 컬러 Lime(Accent)로 변경하여 지도 위에서 돋보이게 함
+            <Polyline key={`l-${idx}`} path={path} strokeWeight={6} strokeColor={COLORS.accent} strokeOpacity={0.9} strokeStyle={"solid"} />
           ))}
         </Map>
         <ControlPanel
@@ -241,9 +225,10 @@ function App() {
           <button
             onClick={() => setIsChartOpen(!isChartOpen)}
             style={{
-              position: 'absolute', top: '-30px', right: '20px', height: '30px', backgroundColor: 'white',
-              border: '1px solid #ddd', borderBottom: 'none', borderRadius: '8px 8px 0 0', cursor: 'pointer',
-              padding: '0 15px', fontSize: '14px', fontWeight: 'bold', color: '#555',
+              position: 'absolute', top: '-30px', right: '20px', height: '30px',
+              backgroundColor: COLORS.white,
+              border: `1px solid ${COLORS.border}`, borderBottom: 'none', borderRadius: '8px 8px 0 0', cursor: 'pointer',
+              padding: '0 15px', fontSize: '13px', fontWeight: 'bold', color: COLORS.primary,
               boxShadow: '0 -3px 5px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center'
             }}
           >
@@ -251,7 +236,7 @@ function App() {
           </button>
           <div style={{
             height: isChartOpen ? '220px' : '0px', transition: 'height 0.3s ease-in-out', overflow: 'hidden',
-            backgroundColor: 'white', borderTop: isChartOpen ? '1px solid #ddd' : 'none', display: 'flex', flexDirection: 'row'
+            backgroundColor: COLORS.white, borderTop: `1px solid ${COLORS.border}`, display: 'flex', flexDirection: 'row'
           }}>
             <div style={{ flex: 1, position: 'relative', padding: '10px' }}>
               <ElevationChart polylines={currentPolylines} onHoverPoint={updateHoverMarker} />

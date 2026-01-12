@@ -1,5 +1,8 @@
+// src/components/ControlPanel.jsx
 import React, { useState } from 'react';
-import { STYLES } from '../constants';
+import { COLORS, SHADOWS } from '../styles/theme';
+import Button from './ui/Button';
+import SmartRoutingHelpModal from './SmartRoutingHelpModal'; // ⚡ 모달 임포트
 
 const ControlPanel = ({
     markerCount,
@@ -14,130 +17,154 @@ const ControlPanel = ({
     onReset,
     isAutoRouting,
     onToggleAutoRouting,
-    // ⚡ [신규] 부모에서 받을 제목과 수정 상태
     currentTitle = "새 코스",
     isModified = false
 }) => {
     const [isOpen, setIsOpen] = useState(true);
+    const [isHelpOpen, setIsHelpOpen] = useState(false); // ⚡ 모달 상태
+    const [showTooltip, setShowTooltip] = useState(false); // ⚡ 툴팁 상태
 
-    const actionBtnStyle = {
-        ...STYLES.baseBtn,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '6px'
+    // ... (기존 스타일 containerStyle, headerStyle 등은 그대로 유지) ...
+    const containerStyle = {
+        position: 'absolute',
+        top: '20px',
+        right: '20px',
+        left: 'auto',
+        width: '320px',
+        backgroundColor: COLORS.white,
+        borderRadius: '12px',
+        boxShadow: SHADOWS.card,
+        zIndex: 10,
+        overflow: 'visible', // ⚡ 툴팁이 잘리지 않도록 visible로 변경
+        transition: 'all 0.3s ease',
+        border: `1px solid ${COLORS.border}`,
+        fontFamily: "'Pretendard', sans-serif",
     };
 
-    const iconBtnStyle = (disabled) => ({
-        width: '32px',
-        height: '32px',
-        borderRadius: '8px',
-        border: '1px solid #eee',
-        backgroundColor: disabled ? '#f5f5f5' : 'white',
-        color: disabled ? '#ccc' : '#333',
-        cursor: disabled ? 'not-allowed' : 'pointer',
+    // ... (headerStyle 등 기존 코드 생략) ...
+    const headerStyle = {
+        backgroundColor: COLORS.primary,
+        padding: '16px 20px',
         display: 'flex',
+        justifyContent: 'space-between',
         alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '16px',
-        transition: 'all 0.2s',
-        boxShadow: disabled ? 'none' : '0 1px 3px rgba(0,0,0,0.1)'
-    });
+        cursor: 'pointer',
+        color: COLORS.white,
+        borderTopLeftRadius: '12px',  // 둥근 모서리 명시
+        borderTopRightRadius: '12px',
+    };
 
     const contentStyle = {
-        overflow: 'hidden',
-        transition: 'all 0.3s ease-in-out',
-        maxHeight: isOpen ? '450px' : '0px', // 높이 살짝 늘림
-        opacity: isOpen ? 1 : 0,
-        marginTop: isOpen ? '15px' : '0px',
+        padding: '20px',
+        display: isOpen ? 'flex' : 'none',
+        flexDirection: 'column',
+        gap: '16px',
     };
 
-    const arrowStyle = {
-        display: 'inline-block',
-        transition: 'transform 0.3s ease',
-        transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-        color: '#666',
-        fontSize: '14px'
-    }
-
     return (
-        <div style={{ ...STYLES.controlPanel, display: 'flex', flexDirection: 'column', transition: 'all 0.3s ease' }}>
-
-            {/* 헤더 */}
-            <div
-                onClick={() => setIsOpen(!isOpen)}
-                style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    cursor: 'pointer',
-                    borderBottom: isOpen ? '1px solid #eee' : 'none',
-                    paddingBottom: isOpen ? '10px' : '0px',
-                    transition: 'all 0.3s ease'
-                }}
-            >
-                <h3 style={{ margin: 0, fontSize: '20px', color: '#222' }}>⛰️ TopoRider</h3>
-                <span style={arrowStyle}>▼</span>
-            </div>
-
-            {/* 내용물 */}
-            <div style={contentStyle}>
-
-                {/* ⚡ 상태바 + 도구 모음 */}
-                <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '10px',
-                    marginBottom: '15px',
-                    backgroundColor: '#f8f9fa',
-                    padding: '10px',
-                    borderRadius: '8px'
-                }}>
-                    {/* ⚡ 0행: 코스 제목 표시 (신규 추가됨) */}
-                    <div style={{
-                        textAlign: 'center',
-                        paddingBottom: '8px',
-                        borderBottom: '1px dashed #ddd',
-                        marginBottom: '2px'
-                    }}>
-                        <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#333' }}>
-                            {currentTitle}
+        <>
+            <div style={containerStyle}>
+                {/* Header */}
+                <div onClick={() => setIsOpen(!isOpen)} style={headerStyle}>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span style={{ fontSize: '18px', fontWeight: '800', letterSpacing: '-0.5px' }}>
+                            TopoRider
                         </span>
-                        {isModified && (
-                            <span style={{
-                                fontSize: '12px',
-                                color: '#f59e0b', // 주황색 (수정중 느낌)
-                                marginLeft: '6px',
-                                fontWeight: 'normal',
-                                animation: 'pulse 2s infinite' // (선택) 깜빡이는 효과를 원하면 CSS 추가 필요
-                            }}>
-                                (수정중)
-                            </span>
+                        <span style={{ fontSize: '11px', opacity: 0.8, fontWeight: '400' }}>
+                            Ride with the terrain
+                        </span>
+                    </div>
+                    <span style={{ transform: isOpen ? 'rotate(0deg)' : 'rotate(180deg)', transition: '0.3s' }}>
+                        ▲
+                    </span>
+                </div>
+
+                {/* Body */}
+                <div style={contentStyle}>
+
+                    {/* 1. 코스 정보 (생략 - 기존 코드 유지) */}
+                    <div style={{ textAlign: 'center', paddingBottom: '12px', borderBottom: `1px dashed ${COLORS.border}` }}>
+                        <div style={{ fontSize: '16px', fontWeight: 'bold', color: COLORS.textMain, marginBottom: '4px' }}>
+                            {currentTitle}
+                        </div>
+                        {isModified ? (
+                            <span style={{ fontSize: '12px', color: COLORS.secondary, fontWeight: '600' }}>● Unsaved Changes</span>
+                        ) : (
+                            <span style={{ fontSize: '12px', color: COLORS.textSub }}>All saved</span>
                         )}
                     </div>
 
-                    {/* 1행: 상태 정보 + Undo/Redo */}
+                    {/* 2. 통계 및 히스토리 (생략 - 기존 코드 유지) */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div style={{ fontSize: '12px', color: '#666', fontWeight: 'bold' }}>
-                            📍 WP: {markerCount} <br />
-                            📏 Seg: {polylineCount}
+                        <div style={{ fontSize: '12px', color: COLORS.textSub, lineHeight: '1.4' }}>
+                            <strong style={{ color: COLORS.primary }}>{markerCount}</strong> Waypoints<br />
+                            <strong style={{ color: COLORS.primary }}>{polylineCount}</strong> Segments
                         </div>
-                        <div style={{ display: 'flex', gap: '5px' }}>
-                            <button onClick={onUndo} disabled={!canUndo} style={iconBtnStyle(!canUndo)} title="실행 취소">↩️</button>
-                            <button onClick={onRedo} disabled={!canRedo} style={iconBtnStyle(!canRedo)} title="다시 실행">↪️</button>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                            <Button size="small" variant="outline" onClick={onUndo} disabled={!canUndo} title="Undo">↩</Button>
+                            <Button size="small" variant="outline" onClick={onRedo} disabled={!canRedo} title="Redo">↪</Button>
                         </div>
                     </div>
 
-                    {/* 2행: 자동 경로 완성 스위치 */}
+                    {/* 3. 옵션 (Auto Routing) */}
                     <div style={{
                         display: 'flex',
-                        alignItems: 'center',
                         justifyContent: 'space-between',
-                        borderTop: '1px solid #e0e0e0',
-                        paddingTop: '8px'
+                        alignItems: 'center',
+                        backgroundColor: COLORS.background,
+                        padding: '10px 12px',
+                        borderRadius: '8px'
                     }}>
-                        <span style={{ fontSize: '13px', color: '#333', fontWeight: '600' }}>⚡ 자동 경로 완성</span>
-                        <label style={{ position: 'relative', display: 'inline-block', width: '34px', height: '20px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', position: 'relative' }}>
+                            <span style={{ fontSize: '13px', fontWeight: '600', color: COLORS.textMain }}>
+                                ⚡ Smart Routing
+                            </span>
+
+                            {/* ℹ️ 아이콘 & 툴팁 영역 */}
+                            <div
+                                onMouseEnter={() => setShowTooltip(true)}
+                                onMouseLeave={() => setShowTooltip(false)}
+                                onClick={() => setIsHelpOpen(true)}
+                                style={{
+                                    width: '16px', height: '16px',
+                                    backgroundColor: COLORS.primary,
+                                    borderRadius: '50%',
+                                    color: 'white',
+                                    fontSize: '11px', fontWeight: 'bold',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                i
+                                {/* Tooltip (Hover 시 등장) */}
+                                {showTooltip && (
+                                    <div style={{
+                                        position: 'absolute',
+                                        bottom: '100%', left: '50%',
+                                        transform: 'translateX(-50%)',
+                                        marginBottom: '8px',
+                                        backgroundColor: 'rgba(0,0,0,0.8)',
+                                        color: 'white',
+                                        padding: '4px 8px',
+                                        borderRadius: '4px',
+                                        fontSize: '11px',
+                                        whiteSpace: 'nowrap',
+                                        pointerEvents: 'none',
+                                        zIndex: 20
+                                    }}>
+                                        기능 알아보기
+                                        <div style={{ // 말풍선 꼬리
+                                            position: 'absolute', top: '100%', left: '50%',
+                                            transform: 'translateX(-50%)',
+                                            borderWidth: '4px', borderStyle: 'solid',
+                                            borderColor: 'rgba(0,0,0,0.8) transparent transparent transparent'
+                                        }} />
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <label style={{ position: 'relative', display: 'inline-block', width: '36px', height: '20px' }}>
                             <input
                                 type="checkbox"
                                 checked={isAutoRouting}
@@ -146,30 +173,34 @@ const ControlPanel = ({
                             />
                             <span style={{
                                 position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
-                                backgroundColor: isAutoRouting ? '#2196F3' : '#ccc',
-                                transition: '.4s', borderRadius: '34px'
+                                backgroundColor: isAutoRouting ? COLORS.accent : '#ccc',
+                                transition: '.3s', borderRadius: '34px'
                             }}>
                                 <span style={{
-                                    position: 'absolute', content: '""', height: '14px', width: '14px',
-                                    left: isAutoRouting ? '16px' : '4px', bottom: '3px',
-                                    backgroundColor: 'white', transition: '.4s', borderRadius: '50%'
+                                    position: 'absolute', content: '""', height: '16px', width: '16px',
+                                    left: isAutoRouting ? '18px' : '2px', bottom: '2px',
+                                    backgroundColor: 'white', transition: '.3s', borderRadius: '50%',
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.2)'
                                 }}></span>
                             </span>
                         </label>
                     </div>
-                </div>
 
-                {/* 메인 액션 버튼들 */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <div style={{ display: 'flex', gap: '4px' }}>
-                        <button onClick={onSave} style={{ ...actionBtnStyle, background: '#2196F3', width: '45%' }}>☁️ 저장</button>
-                        <button onClick={onList} style={{ ...actionBtnStyle, background: '#673AB7', width: '55%' }}>📂 불러오기</button>
+                    {/* 4. 메인 액션 버튼 (생략 - 기존 코드 유지) */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                            <Button onClick={onSave} variant="primary" style={{ flex: 1 }}>☁ 저장</Button>
+                            <Button onClick={onList} variant="secondary" style={{ flex: 1 }}>📂 목록</Button>
+                        </div>
+                        <Button onClick={onDownload} variant="accent" style={{ width: '100%' }}>💾 TCX 다운로드</Button>
+                        <Button onClick={onReset} variant="danger" size="small" style={{ width: '100%', marginTop: '5px' }}>🗑️ 초기화</Button>
                     </div>
-                    <button onClick={onDownload} style={{ ...actionBtnStyle, background: '#4CAF50' }}>💾 TCX 내보내기</button>
-                    <button onClick={onReset} style={{ ...actionBtnStyle, background: '#FF5A5A' }}>🗑️ 초기화</button>
                 </div>
             </div>
-        </div>
+
+            {/* ⚡ 도움말 모달 컴포넌트 렌더링 */}
+            <SmartRoutingHelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
+        </>
     );
 };
 

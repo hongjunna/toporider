@@ -1,109 +1,118 @@
+// src/components/LoadCourseModal.jsx
 import React, { useState } from 'react';
 import { deleteCourse, updateCourse } from '../api/courseApi';
+import { COLORS, SHADOWS } from '../styles/theme';
+import Button from './ui/Button';
 
 const LoadCourseModal = ({ isOpen, onClose, courseList, onLoad, onRefresh }) => {
-    const [editingId, setEditingId] = useState(null); // 현재 수정 중인 코스 ID
-    const [editTitle, setEditTitle] = useState("");   // 수정 중인 제목 텍스트
+    const [editingId, setEditingId] = useState(null);
+    const [editTitle, setEditTitle] = useState("");
 
     if (!isOpen) return null;
 
-    // 삭제 핸들러
     const handleDelete = async (id) => {
-        if (window.confirm("정말 이 코스를 삭제하시겠습니까?")) {
+        if (window.confirm("정말 이 코스를 삭제하시겠습니까? (복구 불가)")) {
             try {
                 await deleteCourse(id);
-                alert("삭제되었습니다.");
-                onRefresh(); // 목록 새로고침 (App.jsx에서 전달받음)
-            } catch (e) {
-                alert("삭제 실패");
-            }
+                onRefresh();
+            } catch (e) { alert("삭제 실패"); }
         }
     };
 
-    // 수정 모드 진입
     const startEdit = (course) => {
         setEditingId(course.id);
         setEditTitle(course.title);
     };
 
-    // 수정 취소
-    const cancelEdit = () => {
-        setEditingId(null);
-        setEditTitle("");
-    };
-
-    // 수정 저장
     const saveEdit = async (id) => {
         if (!editTitle.trim()) return alert("제목을 입력해주세요.");
         try {
             await updateCourse(id, editTitle);
             setEditingId(null);
-            alert("수정이 완료되었습니다.")
-            onRefresh(); // 목록 새로고침
-        } catch (e) {
-            alert("수정에 실패하였습니다. 관리자에게 문의해 주세요");
-        }
+            onRefresh();
+        } catch (e) { alert("수정 실패"); }
     };
 
     return (
         <div style={{
             position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000,
-            display: 'flex', alignItems: 'center', justifyContent: 'center'
+            backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 9999,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            backdropFilter: 'blur(2px)' // 배경 블러 효과
         }}>
             <div style={{
-                backgroundColor: 'white',
-                color: '#333', // ⚡ [수정] 글자색을 검정색(#333)으로 강제 지정!
-                padding: '20px', borderRadius: '12px',
-                width: '500px', maxHeight: '80vh', display: 'flex', flexDirection: 'column'
+                backgroundColor: COLORS.white,
+                color: COLORS.textMain,
+                borderRadius: '16px',
+                width: '550px', maxHeight: '80vh',
+                display: 'flex', flexDirection: 'column',
+                boxShadow: SHADOWS.modal,
+                overflow: 'hidden'
             }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
-                    {/* ⚡ color 상속받아 이제 잘 보일 겁니다 */}
-                    <h2 style={{ margin: 0 }}>📂 저장된 코스 목록</h2>
-                    <button onClick={onClose} style={{ border: 'none', background: 'none', fontSize: '20px', cursor: 'pointer', color: '#333' }}>✖</button>
+                {/* Header */}
+                <div style={{
+                    padding: '20px',
+                    borderBottom: `1px solid ${COLORS.border}`,
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                }}>
+                    <h2 style={{ margin: 0, fontSize: '20px', color: COLORS.primary }}>
+                        📂 내 라이딩 코스
+                    </h2>
+                    <button onClick={onClose} style={{ border: 'none', background: 'none', fontSize: '24px', cursor: 'pointer', color: COLORS.textSub }}>
+                        &times;
+                    </button>
                 </div>
 
-                <div style={{ overflowY: 'auto', flex: 1 }}>
+                {/* List */}
+                <div style={{ overflowY: 'auto', flex: 1, padding: '10px' }}>
                     {courseList.length === 0 ? (
-                        <p style={{ textAlign: 'center', color: '#888' }}>저장된 코스가 없습니다.</p>
+                        <div style={{ padding: '40px', textAlign: 'center', color: COLORS.textSub }}>
+                            저장된 코스가 없습니다.<br />새로운 모험을 시작해보세요!
+                        </div>
                     ) : (
-                        <ul style={{ listStyle: 'none', padding: 0 }}>
+                        <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                             {courseList.map(course => (
                                 <li key={course.id} style={{
-                                    borderBottom: '1px solid #eee', padding: '12px 0',
-                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                                    border: `1px solid ${COLORS.border}`,
+                                    borderRadius: '8px',
+                                    padding: '16px',
+                                    marginBottom: '10px',
+                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                    backgroundColor: COLORS.background
                                 }}>
                                     {editingId === course.id ? (
-                                        // --- 수정 모드 ---
-                                        <div style={{ display: 'flex', gap: '5px', flex: 1, marginRight: '10px' }}>
+                                        // 수정 모드
+                                        <div style={{ display: 'flex', gap: '8px', flex: 1, width: '100%' }}>
                                             <input
                                                 type="text"
                                                 value={editTitle}
                                                 onChange={(e) => setEditTitle(e.target.value)}
-                                                // ⚡ 입력창 글씨도 잘 보이게 색상 지정
-                                                style={{ flex: 1, padding: '5px', color: '#000', backgroundColor: '#fff', border: '1px solid #ccc' }}
+                                                style={{
+                                                    flex: 1, padding: '8px', borderRadius: '6px',
+                                                    border: `1px solid ${COLORS.primary}`, outline: 'none'
+                                                }}
+                                                autoFocus
                                             />
-                                            <button onClick={() => saveEdit(course.id)} style={btnStyle('green')}>확인</button>
-                                            <button onClick={cancelEdit} style={btnStyle('#888')}>취소</button>
+                                            <Button size="small" onClick={() => saveEdit(course.id)}>저장</Button>
+                                            <Button size="small" variant="outline" onClick={() => setEditingId(null)}>취소</Button>
                                         </div>
                                     ) : (
-                                        // --- 일반 모드 ---
-                                        <div style={{ flex: 1 }}>
-                                            {/* ⚡ color 상속받아 잘 보임 */}
-                                            <span style={{ fontWeight: 'bold', fontSize: '16px' }}>{course.title}</span>
-                                            <div style={{ fontSize: '12px', color: '#666' }}>
-                                                {new Date(course.created_at).toLocaleString()}
+                                        // 일반 모드
+                                        <>
+                                            <div style={{ flex: 1 }}>
+                                                <div style={{ fontWeight: '700', fontSize: '16px', color: COLORS.textMain, marginBottom: '4px' }}>
+                                                    {course.title}
+                                                </div>
+                                                <div style={{ fontSize: '12px', color: COLORS.textSub }}>
+                                                    {new Date(course.created_at).toLocaleDateString()} 생성
+                                                </div>
                                             </div>
-                                        </div>
-                                    )}
-
-                                    {/* 버튼 그룹 */}
-                                    {editingId !== course.id && (
-                                        <div style={{ display: 'flex', gap: '5px' }}>
-                                            <button onClick={() => onLoad(course)} style={btnStyle('#3b82f6')}>불러오기</button>
-                                            <button onClick={() => startEdit(course)} style={btnStyle('#f59e0b')}>코스명 수정</button>
-                                            <button onClick={() => handleDelete(course.id)} style={btnStyle('#ef4444')}>삭제</button>
-                                        </div>
+                                            <div style={{ display: 'flex', gap: '6px' }}>
+                                                <Button size="small" onClick={() => onLoad(course)}>불러오기</Button>
+                                                <Button size="small" variant="secondary" onClick={() => startEdit(course)}>이름 변경</Button>
+                                                <Button size="small" variant="danger" onClick={() => handleDelete(course.id)}>삭제</Button>
+                                            </div>
+                                        </>
                                     )}
                                 </li>
                             ))}
@@ -114,10 +123,5 @@ const LoadCourseModal = ({ isOpen, onClose, courseList, onLoad, onRefresh }) => 
         </div>
     );
 };
-// 간단한 버튼 스타일 함수
-const btnStyle = (color) => ({
-    backgroundColor: color, color: 'white', border: 'none',
-    padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '13px'
-});
 
 export default LoadCourseModal;
