@@ -1,0 +1,37 @@
+graphhopper:
+  elevation:
+    enabled: true
+    provider: srtm
+    cache_dir: /data/elevation
+    dataaccess: mmap
+
+  datareader.file: /data/south-korea-260101.osm.pbf
+  # 이미지 기본 경로와 맞춤
+  graph.location: /data/default-gh
+
+  graph.encoded_values: bike_access, bike_average_speed, bike_priority, road_access, road_class, road_environment, max_speed, average_slope, max_slope
+
+  import.osm.ignored_highways: footway,steps
+
+  profiles:
+    - name: bike
+      weighting: custom
+      custom_model:
+        speed:
+          - if: 'true'
+            limit_to: bike_average_speed
+          - if: 'true'
+            limit_to: 15
+        priority:
+          - if: 'bike_access == false'
+            multiply_by: 0
+          - else_if: 'bike_priority < 0.5'
+            multiply_by: 0.5
+
+  profiles_ch:
+    - profile: bike
+
+server:
+  application_connectors:
+    - type: http
+      port: 8989

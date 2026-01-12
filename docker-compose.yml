@@ -1,0 +1,54 @@
+services:
+  # 👇 새로 추가할 DB 서비스
+  db:
+    image: postgres:15
+    container_name: postgres_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=wnsfoq1!
+      - POSTGRES_DB=toporider_db
+    ports:
+      # [수정] 왼쪽(5401)은 내 컴퓨터용, 오른쪽(5432)은 컨테이너 내부용
+      - '5401:5432'
+
+  backend:
+    build: ./backend
+    container_name: fastapi_backend
+    ports:
+      - '8000:8000'
+    depends_on:
+      - graphhopper
+      - db
+    environment:
+      - GRAPHHOPPER_URL=http://graphhopper:8989
+      # [중요] 백엔드는 내부망을 쓰므로 포트는 5432여야 합니다!
+      # 비밀번호 오타도 수정했습니다 (wnsfqo1! -> wnsfoq1!)
+      - DATABASE_URL=postgresql://admin:wnsfoq1!@db:5432/toporider_db
+
+  graphhopper:
+    build: ./graphhopper
+    container_name: graphhopper
+    volumes:
+      - ./data:/data
+      - ./graphhopper/config-gh.yml:/graphhopper/config.yml
+    environment:
+      - JAVA_OPTS=-Xmx2g -Xms2g
+    ports:
+      - '8989:8989'
+
+  frontend:
+    build: ./frontend
+    container_name: toporider_frontend
+    restart: always
+    ports:
+      - '3000:80' # 호스트의 3000번 포트로 연결
+    depends_on:
+      - backend
+    networks:
+      - toporider_net
+
+volumes: # 맨 아래에 추가
+  postgres_data:
+

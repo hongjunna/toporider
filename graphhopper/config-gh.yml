@@ -1,0 +1,46 @@
+graphhopper:
+  datareader.file: '/data/south-korea-260101.osm.pbf'
+  graph.location: '/data/graph-cache'
+  import.osm.ignored_highways: motorway
+
+  # 고도 설정 (CGIAR가 더 안정적입니다)
+  graph.elevation.provider: cgiar
+  graph.elevation.cache_dir: /data/srtm
+
+  # ⚡ [핵심 수정 1] foot 관련 속성(foot_access 등)을 여기에 반드시 추가해야 합니다.
+  graph.encoded_values: surface,road_class,road_access,road_environment,max_speed,average_slope,foot_access,foot_priority,foot_average_speed
+
+  profiles:
+    - name: bike
+      weighting: custom
+      elevation: true
+      custom_model:
+        distance_influence: 15
+        speed:
+          - { if: 'true', limit_to: 'max_speed' }
+          - { if: 'true', limit_to: 25 }
+          - { if: 'surface == SAND', multiply_by: 0.5 }
+          - { if: 'road_class != CYCLEWAY', multiply_by: 0.9 }
+        priority:
+          - { if: 'road_access == NO', multiply_by: 0 }
+          - { if: 'road_class == CYCLEWAY', multiply_by: 1.5 }
+          - { if: 'road_class == PRIMARY', multiply_by: 0.5 }
+
+    # ⚡ [핵심 수정 2] vehicle: foot 대신 custom_model 사용
+    - name: foot
+      weighting: custom
+      elevation: true
+      custom_model:
+        distance_influence: 0
+        speed:
+          - { if: 'true', limit_to: 5 } # 걷는 속도 (5km/h) 고정
+        priority:
+          - { if: 'foot_access == false', multiply_by: 0 } # 사람이 못 가는 길 제외
+
+server:
+  application_connectors:
+    - type: http
+      port: 8989
+  admin_connectors:
+    - type: http
+      port: 8990

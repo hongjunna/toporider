@@ -1,0 +1,59 @@
+// src/hooks/useHistoryState.js
+import { useState, useCallback, useEffect } from 'react';
+
+export function useHistoryState(initialState) {
+    const [history, setHistory] = useState([initialState]);
+    const [step, setStep] = useState(0);
+
+    const currentState = history[step];
+
+    const pushState = useCallback((newState) => {
+        const newHistory = history.slice(0, step + 1);
+        setHistory([...newHistory, newState]);
+        setStep(newHistory.length);
+    }, [history, step]);
+
+    const undo = useCallback(() => {
+        if (step > 0) setStep((prev) => prev - 1);
+    }, [step]);
+
+    const redo = useCallback(() => {
+        if (step < history.length - 1) setStep((prev) => prev + 1);
+    }, [step, history.length]);
+
+    const reset = useCallback((initialData) => {
+        setHistory([initialData]);
+        setStep(0);
+    }, []);
+
+    // 키보드 단축키 지원
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                if (e.key === 'z' || e.key === 'Z') {
+                    if (e.shiftKey) {
+                        e.preventDefault();
+                        redo();
+                    } else {
+                        e.preventDefault();
+                        undo();
+                    }
+                }
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [undo, redo]);
+
+    return {
+        currentState,
+        pushState,
+        undo,
+        redo,
+        reset,
+        canUndo: step > 0,
+        canRedo: step < history.length - 1,
+        historyLength: history.length,
+        step,
+    };
+}
